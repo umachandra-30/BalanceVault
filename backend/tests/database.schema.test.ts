@@ -102,3 +102,4 @@ describe('Phase 2 — Database Architecture & Double-Entry Ledger Tests', () => 
     });
   });
 });
+
