@@ -36,3 +36,4 @@ export async function recordAuditLog(params: CreateAuditLogParams): Promise<void
     logger.error(`Failed to write audit log for action: ${params.action}`, err);
   }
 }
+

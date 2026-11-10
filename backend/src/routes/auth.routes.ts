@@ -13,3 +13,4 @@ authRouter.post('/refresh', authController.refresh);
 // Protected routes (Require valid authentication)
 authRouter.post('/logout', authenticate, authController.logout);
 authRouter.get('/me', authenticate, authController.getMe);
+

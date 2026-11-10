@@ -230,14 +230,7 @@ export class AuthService {
   async getMe(userId: string) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
         onboarding: {
           select: {
             id: true,
@@ -267,8 +260,11 @@ export class AuthService {
       throw new NotFoundError('User profile not found.');
     }
 
-    return user;
+    // Explicitly omit sensitive password hash before returning
+    const { passwordHash: _, ...safeUserProfile } = user;
+    return safeUserProfile;
   }
 }
 
 export const authService = new AuthService();
+
