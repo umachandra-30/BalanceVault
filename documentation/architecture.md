@@ -20,6 +20,7 @@ BalanceVault is built as a modular monorepo web platform engineered for verifiab
                     │   - Centralized Error & 404 Handlers    │
                     │   - Sanitized Request Logging           │
                     │   - Zod Input & Environment Validation  │
+                    │   - Rate Limiter (Brute-Force Guard)    │
                     └──────────────┬──────────────────┬───────┘
                                    │                  │
                Rate Limiting &     │                  │ Type-Safe Queries
@@ -40,54 +41,41 @@ BalanceVault is built as a modular monorepo web platform engineered for verifiab
 
 ---
 
-## 2. Monorepo Organization
+## 2. Authentication & Authorization Architecture (Phase 3)
 
-```
-BalanceVault/
-├── backend/                  # Express REST API, Prisma ORM & Business Logic
-│   ├── prisma/               # Prisma schema, migrations, and seeds
-│   │   └── schema.prisma     # Relational database models
-│   ├── src/
-│   │   ├── config/           # Environment, logger, redis configs
-│   │   ├── middleware/       # Error handling, request logging, security
-│   │   ├── routes/           # REST API routes (/api/v1/...)
-│   │   ├── utils/            # Standard response helpers, AppError classes
-│   │   ├── app.ts            # Express application bootstrap
-│   │   └── server.ts         # HTTP server entry point with graceful shutdown
-│   ├── tests/                # Automated API & unit test suites
-│   ├── tsconfig.json         # Backend TypeScript config
-│   └── package.json
-│
-├── frontend/                 # React 18 SPA (Vite + TypeScript)
-│   ├── src/
-│   │   ├── components/       # Reusable UI components (Navbar, Button, Input, Card)
-│   │   ├── pages/            # Login, Register, Dashboard, NotFound
-│   │   ├── index.css         # Responsive fintech design system
-│   │   ├── App.tsx           # Route layout & router mounting
-│   │   └── main.tsx          # Client entry point
-│   ├── index.html            # Single page app template
-│   ├── vite.config.ts        # Vite config with API reverse proxy
-│   └── package.json
-│
-├── documentation/            # Architectural and operational specs
-│   ├── architecture.md       # System design & component interactions
-│   ├── database-schema.md    # Ledger models & relational dictionary
-│   └── development-guide.md  # Step-by-step setup and troubleshooting
-│
-├── .env.example              # Root environment template
-├── .gitignore                # Git exclusions
-├── package.json              # Monorepo workspaces & convenience scripts
-└── README.md                 # Project guide & quickstart
-```
+### A. Password Security (Argon2id)
+- Passwords are encrypted using **Argon2id** (`memoryCost: 64MB`, `timeCost: 3`, `parallelism: 1`).
+- Passwords and password hashes are **never** returned in API responses and are automatically redacted by the structured logger.
 
----
+### B. Dual Token Authentication (Access JWT + HttpOnly Refresh Cookie)
+- **Access Token**: Short-lived JWT (`1d`) signed with `JWT_SECRET`. Contains minimal claims (`userId`, `email`, `role`, `status`). Accepted via `Authorization: Bearer <token>` or `accessToken` cookie.
+- **Refresh Token**: Signed with `JWT_REFRESH_SECRET` and stored inside a hardened HttpOnly cookie:
+  ```ts
+  {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  }
+  ```
 
-## 3. Financial Integrity: Double-Entry Ledger Principles
+### C. Role-Based Access Control (RBAC)
+Endpoints are strictly protected using the `requireRole(...allowedRoles)` middleware:
+- **`ADMIN`**: User management, reviewing onboarding applications, accessing global audit logs, managing account states.
+- **`ACCOUNT_HOLDER`**: Managing personal accounts, viewing owned ledger entries and balances, initiating permitted deposits and transfers.
+- **`AUDITOR`**: Strictly read-only access to permitted accounts, ledger entries, and audit logs. Mutation endpoints (`POST`, `PUT`, `DELETE`) are prohibited for auditors.
 
-1. **Balance Equation**: Every transaction consists of balanced debits and credits:
-   $$\sum \text{Debits} = \sum \text{Credits}$$
-2. **Immutability**: Ledger entries (`LedgerEntry`) are strictly append-only. They are never updated or deleted. Corrections are handled by posting compensating reversal transactions.
-3. **Atomicity**: Transactions are wrapped in PostgreSQL ACID transactions. An account balance is updated only when its corresponding ledger entry succeeds.
-4. **Idempotency**: Every financial request carries a unique idempotency key (`Idempotency-Key` header). If a request is retried, the system returns the cached outcome instead of executing duplicate transfers.
-5. **Least-Privilege Database Roles**: The application connects using tailored database privileges, while auditors receive read-only roles with no table mutation rights.
+### D. Account Ownership Authorization
+The `requireAccountOwnership(paramName)` middleware enforces ownership at the data layer:
+- **Never trusts an account ID blindly**: Whenever an account ID is passed via URL parameters, request body, or query strings, the middleware verifies that the authenticated user actually owns that account.
+- **Prevents Insecure Direct Object References (IDOR)**: If an account holder attempts to substitute an account ID belonging to another user, access is denied (`403 Forbidden`).
+- **Role Differentiation**:
+  - `ADMIN`: Granted administrative access.
+  - `AUDITOR`: Granted access only on safe read-only HTTP methods (`GET`, `HEAD`). All mutating HTTP methods are rejected (`403 Forbidden`).
+  - `ACCOUNT_HOLDER`: Strictly validated against `account.userId === req.user.id`.
 
+### E. Rate Limiting Protection
+- Sensitive authentication routes (`/api/v1/auth/login` and `/api/v1/auth/register`) are guarded by `authRateLimiter`.
+- Limits requests to **10 attempts per 15-minute window** per client IP to mitigate credential stuffing and brute-force attacks.
+- Returns `429 Too Many Requests` with a standard `Retry-After` header when triggered.
