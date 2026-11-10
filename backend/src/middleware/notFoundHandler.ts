@@ -9,3 +9,4 @@ export const notFoundHandler = (req: Request, res: Response) => {
     `Cannot ${req.method} ${req.originalUrl}. This endpoint does not exist.`
   );
 };
+

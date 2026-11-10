@@ -46,3 +46,4 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     isProduction ? undefined : { stack: err.stack }
   );
 };
+

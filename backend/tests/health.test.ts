@@ -74,3 +74,4 @@ describe('BalanceVault Foundation Tests', () => {
     });
   });
 });
+
