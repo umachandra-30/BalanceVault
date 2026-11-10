@@ -1,0 +1,27 @@
+{
+  "name": "balancevault",
+  "version": "1.0.0",
+  "description": "Money movement with a ledger you can prove - Secure account management and double-entry ledger platform",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=backend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspace=backend",
+    "test:backend": "npm run test --workspace=backend"
+  },
+  "keywords": [
+    "ledger",
+    "banking",
+    "double-entry",
+    "security",
+    "financial-integrity"
+  ],
+  "author": "BalanceVault Team",
+  "license": "ISC"
+}
