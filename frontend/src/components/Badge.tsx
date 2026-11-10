@@ -59,3 +59,4 @@ export function Badge({ children, variant = 'info', icon }: BadgeProps) {
     </span>
   );
 }
+

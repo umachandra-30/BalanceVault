@@ -1,5 +1,7 @@
-// BalanceVault Prisma Schema
-// Money movement with a ledger you can prove
+// ==============================================================================
+// BalanceVault — Prisma Database Schema
+// Tagline: "Money movement with a ledger you can prove."
+// ==============================================================================
 
 generator client {
   provider = "prisma-client-js"
@@ -9,6 +11,10 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ------------------------------------------------------------------------------
+// Enums
+// ------------------------------------------------------------------------------
 
 enum Role {
   ADMIN
@@ -20,6 +26,14 @@ enum UserStatus {
   PENDING_ONBOARDING
   ACTIVE
   SUSPENDED
+  REJECTED
+}
+
+enum OnboardingStatus {
+  NOT_STARTED
+  SUBMITTED
+  IN_REVIEW
+  APPROVED
   REJECTED
 }
 
@@ -45,12 +59,17 @@ enum TransactionStatus {
   PENDING
   POSTED
   REJECTED
+  REVERSED
 }
 
 enum LedgerDirection {
   DEBIT
   CREDIT
 }
+
+// ------------------------------------------------------------------------------
+// User & Authentication Model
+// ------------------------------------------------------------------------------
 
 model User {
   id           String      @id @default(uuid())
@@ -62,15 +81,51 @@ model User {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  accounts     Account[]
-  initiatedTxs JournalTransaction[] @relation("TransactionInitiator")
-  auditLogs    AuditLog[]           @relation("UserAuditLogs")
+  // Relationships
+  accounts            Account[]
+  onboarding          Onboarding?          @relation("UserOnboarding")
+  reviewedOnboardings Onboarding[]         @relation("AdminOnboardingReviews")
+  initiatedTxs        LedgerTransaction[]  @relation("TransactionInitiator")
+  auditLogs           AuditLog[]           @relation("UserAuditLogs")
 
   @@index([email])
   @@index([role])
   @@index([status])
   @@map("users")
 }
+
+// ------------------------------------------------------------------------------
+// Onboarding Model
+// Manages KYC onboarding submission, document verification, and Admin reviews
+// ------------------------------------------------------------------------------
+
+model Onboarding {
+  id                   String           @id @default(uuid())
+  userId               String           @unique
+  status               OnboardingStatus @default(NOT_STARTED)
+  documentType         String?          // e.g., "PASSPORT", "NATIONAL_ID"
+  documentNumberMasked String?          // e.g., "******1234" (no raw sensitive PII stored)
+  notes                String?          // Review notes or rejection reason
+  reviewedById         String?          // Admin reviewer ID
+  submittedAt          DateTime?
+  reviewedAt           DateTime?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  // Relationships
+  user                 User             @relation("UserOnboarding", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy           User?            @relation("AdminOnboardingReviews", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([userId])
+  @@index([reviewedById])
+  @@map("onboardings")
+}
+
+// ------------------------------------------------------------------------------
+// Account Model
+// Stores balance snapshot. Supports multiple accounts per user (Checking, Savings)
+// ------------------------------------------------------------------------------
 
 model Account {
   id            String        @id @default(uuid())
@@ -79,20 +134,28 @@ model Account {
   currency      String        @default("USD")
   type          AccountType   @default(CHECKING)
   status        AccountStatus @default(ACTIVE)
+  // Monetary precision: 18 digits total, 4 decimal places. NEVER use Float!
   balance       Decimal       @default(0.0000) @db.Decimal(18, 4)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  // Relationships
   user          User          @relation(fields: [userId], references: [id], onDelete: Restrict)
   ledgerEntries LedgerEntry[]
 
   @@index([accountNumber])
   @@index([userId])
   @@index([status])
+  @@index([type])
   @@map("accounts")
 }
 
-model JournalTransaction {
+// ------------------------------------------------------------------------------
+// LedgerTransaction Model
+// High-level financial transaction representing an atomic economic event
+// ------------------------------------------------------------------------------
+
+model LedgerTransaction {
   id             String            @id @default(uuid())
   idempotencyKey String            @unique
   type           TransactionType
@@ -102,55 +165,78 @@ model JournalTransaction {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
+  // Relationships
   initiatedBy    User              @relation("TransactionInitiator", fields: [initiatedById], references: [id], onDelete: Restrict)
-  ledgerEntries  LedgerEntry[]
+  entries        LedgerEntry[]
 
   @@index([idempotencyKey])
   @@index([type])
   @@index([status])
   @@index([createdAt])
-  @@map("journal_transactions")
+  @@index([initiatedById])
+  @@map("ledger_transactions")
 }
 
+// ------------------------------------------------------------------------------
+// LedgerEntry Model
+// Atomic double-entry debits and credits.
+// Immutable append-only: notice the intentional absence of `updatedAt`.
+// ------------------------------------------------------------------------------
+
 model LedgerEntry {
-  id            String          @id @default(uuid())
+  id            String            @id @default(uuid())
   transactionId String
   accountId     String
   direction     LedgerDirection
-  amount        Decimal         @db.Decimal(18, 4)
-  balanceAfter  Decimal         @db.Decimal(18, 4)
-  createdAt     DateTime        @default(now())
+  // Monetary precision: 18 digits total, 4 decimal places. Always positive.
+  amount        Decimal           @db.Decimal(18, 4)
+  balanceAfter  Decimal           @db.Decimal(18, 4)
+  createdAt     DateTime          @default(now())
 
-  transaction   JournalTransaction @relation(fields: [transactionId], references: [id], onDelete: Restrict)
-  account       Account            @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  // Relationships
+  transaction   LedgerTransaction @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  account       Account           @relation(fields: [accountId], references: [id], onDelete: Restrict)
 
   @@index([transactionId])
   @@index([accountId])
   @@index([createdAt])
+  @@index([direction])
   @@map("ledger_entries")
 }
 
+// ------------------------------------------------------------------------------
+// AuditLog Model
+// Immutable trail for administrative, security, and financial compliance
+// ------------------------------------------------------------------------------
+
 model AuditLog {
   id             String   @id @default(uuid())
-  action         String
+  action         String   // e.g., "USER_LOGIN", "TRANSFER_EXECUTED", "ONBOARDING_APPROVED"
   actorId        String?
   actorRole      String?
-  targetResource String
+  targetResource String   // e.g., "ACCOUNT", "USER", "TRANSACTION"
   targetId       String?
   ipAddress      String?
   userAgent      String?
-  metadata       Json?
+  metadata       Json?    // Sanitized contextual payload
   createdAt      DateTime @default(now())
 
+  // Relationships
   actor          User?    @relation("UserAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([action])
   @@index([actorId])
+  @@index([targetResource])
   @@index([createdAt])
   @@map("audit_logs")
 }
 
-model IdempotencyRecord {
+// ------------------------------------------------------------------------------
+// IdempotencyKey Model
+// Guarantees at-most-once execution for mutating financial operations
+// ------------------------------------------------------------------------------
+
+model IdempotencyKey {
   id             String   @id @default(uuid())
   key            String   @unique
   endpoint       String
@@ -162,5 +248,5 @@ model IdempotencyRecord {
 
   @@index([key])
   @@index([expiresAt])
-  @@map("idempotency_records")
+  @@map("idempotency_keys")
 }

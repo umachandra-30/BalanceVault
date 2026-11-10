@@ -50,3 +50,4 @@ npx prisma migrate dev --name init
 ## 4. API Endpoints Available in Phase 1
 - `GET /api/v1/health` — Service liveness check (returns `200` with uptime and status).
 - `GET /api/v1/ready` — Service readiness check (returns memory statistics and Redis connection status).
+

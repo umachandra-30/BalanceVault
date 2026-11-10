@@ -66,3 +66,4 @@ export function Input({ label, error, helperText, leftIcon, id, style, ...props 
     </div>
   );
 }
+

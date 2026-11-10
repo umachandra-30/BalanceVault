@@ -90,3 +90,4 @@ BalanceVault/
 3. **Atomicity**: Transactions are wrapped in PostgreSQL ACID transactions. An account balance is updated only when its corresponding ledger entry succeeds.
 4. **Idempotency**: Every financial request carries a unique idempotency key (`Idempotency-Key` header). If a request is retried, the system returns the cached outcome instead of executing duplicate transfers.
 5. **Least-Privilege Database Roles**: The application connects using tailored database privileges, while auditors receive read-only roles with no table mutation rights.
+
