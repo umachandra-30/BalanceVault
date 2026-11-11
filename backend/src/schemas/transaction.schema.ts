@@ -44,3 +44,4 @@ export const transferSchema = z
 export type DepositInput = z.infer<typeof depositSchema>;
 export type WithdrawInput = z.infer<typeof withdrawSchema>;
 export type TransferInput = z.infer<typeof transferSchema>;
+
