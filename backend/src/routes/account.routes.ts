@@ -20,3 +20,4 @@ adminAccountRouter.patch(
   requireRole(Role.ADMIN),
   accountController.updateStatus
 );
+
