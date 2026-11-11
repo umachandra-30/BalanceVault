@@ -14,3 +14,4 @@ export const adminOnboardingRouter = Router();
 // Administrative onboarding review endpoints (Strictly ADMIN only)
 adminOnboardingRouter.get('/onboardings', authenticate, requireRole(Role.ADMIN), onboardingController.listAll);
 adminOnboardingRouter.patch('/onboardings/:id/review', authenticate, requireRole(Role.ADMIN), onboardingController.review);
+
