@@ -17,6 +17,7 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000').transform((val) => parseInt(val, 10)),
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100').transform((val) => parseInt(val, 10)),
+  ADMIN_BOOTSTRAP_SECRET: z.string().min(16, 'ADMIN_BOOTSTRAP_SECRET must be at least 16 characters').default('balancevault_super_admin_bootstrap_secret_2026'),
 });
 
 const parseEnv = () => {
