@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage.tsx';
 import { RegisterPage } from './pages/RegisterPage.tsx';
 import { OnboardingPage } from './pages/OnboardingPage.tsx';
 import { AdminOnboardingsPage } from './pages/AdminOnboardingsPage.tsx';
+import { AccountsPage } from './pages/AccountsPage.tsx';
 import { NotFoundPage } from './pages/NotFoundPage.tsx';
 
 export function App() {
@@ -19,6 +20,7 @@ export function App() {
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/accounts" element={<AccountsPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/onboarding" element={<OnboardingPage />} />

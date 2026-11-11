@@ -1,9 +1,10 @@
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'warning';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
+  loading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
 }
@@ -13,12 +14,15 @@ export function Button({
   variant = 'primary',
   size = 'md',
   isLoading = false,
+  loading = false,
   leftIcon,
   rightIcon,
   style,
   disabled,
   ...props
 }: ButtonProps) {
+  const isButtonLoading = isLoading || loading;
+
   const getVariantStyles = (): React.CSSProperties => {
     switch (variant) {
       case 'secondary':
@@ -38,6 +42,13 @@ export function Button({
           backgroundColor: 'var(--danger)',
           color: '#ffffff',
           border: 'none',
+        };
+      case 'warning':
+        return {
+          backgroundColor: 'var(--warning)',
+          color: '#1a1a1a',
+          border: 'none',
+          fontWeight: 600,
         };
       case 'primary':
       default:
@@ -64,15 +75,15 @@ export function Button({
 
   return (
     <button
-      disabled={disabled || isLoading}
+      disabled={disabled || isButtonLoading}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: '0.5rem',
         fontWeight: 600,
-        cursor: disabled || isLoading ? 'not-allowed' : 'pointer',
-        opacity: disabled || isLoading ? 0.65 : 1,
+        cursor: disabled || isButtonLoading ? 'not-allowed' : 'pointer',
+        opacity: disabled || isButtonLoading ? 0.65 : 1,
         transition: 'all 0.15s ease-in-out',
         ...getVariantStyles(),
         ...getSizeStyles(),
@@ -80,13 +91,13 @@ export function Button({
       }}
       {...props}
     >
-      {isLoading ? (
+      {isButtonLoading ? (
         <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⏳</span>
       ) : (
         leftIcon
       )}
       {children}
-      {!isLoading && rightIcon}
+      {!isButtonLoading && rightIcon}
     </button>
   );
 }

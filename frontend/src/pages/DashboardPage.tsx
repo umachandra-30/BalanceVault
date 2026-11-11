@@ -79,7 +79,14 @@ export function DashboardPage() {
                 Double-entry backed accounts with cryptographically verifiable balances.
               </p>
             </div>
-            <Badge variant="success">KYC Verified & Active</Badge>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Badge variant="success">KYC Verified & Active</Badge>
+              <Link to="/accounts" style={{ textDecoration: 'none' }}>
+                <Button variant="outline" size="sm" rightIcon={<ArrowRight size={14} />}>
+                  Manage Accounts
+                </Button>
+              </Link>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>

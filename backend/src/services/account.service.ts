@@ -121,6 +121,23 @@ export class AccountService {
   }
 
   /**
+   * Get specific account balance with ownership verification
+   */
+  async getAccountBalance(accountId: string, requesterId: string, requesterRole: Role) {
+    const account = await this.getAccountById(accountId, requesterId, requesterRole);
+
+    return {
+      accountId: account.id,
+      accountNumber: account.accountNumber,
+      currency: account.currency,
+      type: account.type,
+      status: account.status,
+      balance: account.balance,
+      updatedAt: account.updatedAt,
+    };
+  }
+
+  /**
    * List all accounts across the platform (for ADMIN and AUDITOR)
    */
   async listAllAccounts(typeFilter?: AccountType, statusFilter?: AccountStatus) {

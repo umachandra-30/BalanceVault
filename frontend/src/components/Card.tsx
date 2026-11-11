@@ -8,11 +8,13 @@ interface CardProps {
   headerAction?: React.ReactNode;
   style?: React.CSSProperties;
   className?: string;
+  onClick?: () => void;
 }
 
-export function Card({ children, title, subtitle, icon, headerAction, style }: CardProps) {
+export function Card({ children, title, subtitle, icon, headerAction, style, onClick }: CardProps) {
   return (
     <div
+      onClick={onClick}
       style={{
         backgroundColor: 'var(--bg-secondary)',
         border: '1px solid var(--border-color)',

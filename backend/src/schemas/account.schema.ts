@@ -8,8 +8,8 @@ export const createAccountSchema = z.object({
 });
 
 export const updateAccountStatusSchema = z.object({
-  status: z.enum(['ACTIVE', 'FROZEN', 'CLOSED'], {
-    errorMap: () => ({ message: "Status must be 'ACTIVE', 'FROZEN', or 'CLOSED'" }),
+  status: z.enum(['PENDING', 'ACTIVE', 'FROZEN', 'CLOSED'], {
+    errorMap: () => ({ message: "Status must be 'PENDING', 'ACTIVE', 'FROZEN', or 'CLOSED'" }),
   }),
   reason: z.string().min(3, 'A reason for status change is required').max(250),
 });

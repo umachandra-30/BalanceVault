@@ -2,7 +2,7 @@ import React from 'react';
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'success' | 'warning' | 'danger' | 'info';
+  variant?: 'success' | 'warning' | 'danger' | 'info' | 'neutral';
   icon?: React.ReactNode;
 }
 
@@ -26,6 +26,12 @@ export function Badge({ children, variant = 'info', icon }: BadgeProps) {
           bg: 'var(--danger-bg)',
           text: 'var(--danger)',
           border: 'var(--danger)',
+        };
+      case 'neutral':
+        return {
+          bg: 'var(--border-subtle)',
+          text: 'var(--text-secondary)',
+          border: 'var(--border-color)',
         };
       case 'info':
       default:

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShieldCheck, Activity, User, KeyRound, LayoutDashboard, LogOut, FileCheck, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, Activity, User, KeyRound, LayoutDashboard, LogOut, FileCheck, ShieldAlert, CreditCard } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 
@@ -94,6 +94,28 @@ export function Navbar() {
           <LayoutDashboard size={16} />
           Dashboard
         </Link>
+
+        {user && (
+          <Link
+            to="/accounts"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.45rem 0.9rem',
+              borderRadius: 6,
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: isActive('/accounts') ? 'var(--text-primary)' : 'var(--text-secondary)',
+              backgroundColor: isActive('/accounts') ? 'var(--border-subtle)' : 'transparent',
+              textDecoration: 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <CreditCard size={16} />
+            Accounts
+          </Link>
+        )}
 
         {user && user.role === 'ADMIN' && (
           <Link

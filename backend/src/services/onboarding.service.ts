@@ -1,7 +1,7 @@
 import { AccountType, OnboardingStatus, UserStatus } from '@prisma/client';
 import { prisma } from '../config/prisma.js';
 import { ReviewOnboardingInput, SubmitOnboardingInput } from '../schemas/onboarding.schema.js';
-import { BadRequestError, ConflictError, NotFoundError } from '../utils/response.js';
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../utils/response.js';
 import { recordAuditLog } from '../utils/audit.js';
 
 export interface ServiceContext {
