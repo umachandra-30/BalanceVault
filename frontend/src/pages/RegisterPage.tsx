@@ -1,20 +1,61 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card } from '../components/Card.tsx';
 import { Input } from '../components/Input.tsx';
 import { Button } from '../components/Button.tsx';
-import { Link } from 'react-router-dom';
-import { UserPlus, Mail, Lock, User, AlertCircle, Shield } from 'lucide-react';
+import { useAuth } from '../context/AuthContext.tsx';
+import { UserPlus, Mail, Lock, User, AlertCircle, Shield, CheckCircle2 } from 'lucide-react';
 
 export function RegisterPage() {
+  const navigate = useNavigate();
+  const { register } = useAuth();
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'ACCOUNT_HOLDER' | 'AUDITOR'>('ACCOUNT_HOLDER');
-  const [notice, setNotice] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setNotice('Phase 1 Foundation Setup: User Registration backend API is planned for Phase 3.');
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    // Client-side validation checks
+    if (fullName.trim().length < 2) {
+      setErrorMessage('Full name must be at least 2 characters long.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setErrorMessage('Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      setErrorMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const newUser = await register(fullName, email, password, role);
+      setSuccessMessage('Registration successful! Redirecting to KYC onboarding...');
+      setTimeout(() => {
+        if (newUser.role === 'AUDITOR' || newUser.status === 'ACTIVE') {
+          navigate('/dashboard');
+        } else {
+          navigate('/onboarding');
+        }
+      }, 1200);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -45,23 +86,43 @@ export function RegisterPage() {
       </div>
 
       <Card>
-        {notice && (
+        {errorMessage && (
           <div
             style={{
               padding: '0.75rem',
               borderRadius: 6,
-              backgroundColor: 'var(--accent-glow)',
-              color: 'var(--accent-primary)',
+              backgroundColor: 'var(--danger-bg)',
+              color: 'var(--danger)',
               fontSize: '0.85rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
               marginBottom: '1.25rem',
-              border: '1px solid var(--accent-primary)',
+              border: '1px solid var(--danger)',
             }}
           >
             <AlertCircle size={18} />
-            <span>{notice}</span>
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        {successMessage && (
+          <div
+            style={{
+              padding: '0.75rem',
+              borderRadius: 6,
+              backgroundColor: 'var(--success-bg)',
+              color: 'var(--success)',
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '1.25rem',
+              border: '1px solid var(--success)',
+            }}
+          >
+            <CheckCircle2 size={18} />
+            <span>{successMessage}</span>
           </div>
         )}
 
@@ -74,6 +135,7 @@ export function RegisterPage() {
             onChange={(e) => setFullName(e.target.value)}
             leftIcon={<User size={16} />}
             required
+            disabled={isLoading}
           />
 
           <Input
@@ -84,16 +146,19 @@ export function RegisterPage() {
             onChange={(e) => setEmail(e.target.value)}
             leftIcon={<Mail size={16} />}
             required
+            disabled={isLoading}
           />
 
           <Input
             label="Password"
             type="password"
-            placeholder="Minimum 8 characters"
+            placeholder="Min 8 chars (Uppercase, lowercase, digit)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             leftIcon={<Lock size={16} />}
             required
+            disabled={isLoading}
+            helperText="Include at least one uppercase letter, lowercase letter, and number."
           />
 
           <div style={{ marginBottom: '1.25rem' }}>
@@ -104,6 +169,7 @@ export function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setRole('ACCOUNT_HOLDER')}
+                disabled={isLoading}
                 style={{
                   padding: '0.6rem 0.8rem',
                   borderRadius: 6,
@@ -116,6 +182,7 @@ export function RegisterPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.4rem',
+                  cursor: 'pointer',
                 }}
               >
                 <User size={15} />
@@ -124,6 +191,7 @@ export function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setRole('AUDITOR')}
+                disabled={isLoading}
                 style={{
                   padding: '0.6rem 0.8rem',
                   borderRadius: 6,
@@ -136,6 +204,7 @@ export function RegisterPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.4rem',
+                  cursor: 'pointer',
                 }}
               >
                 <Shield size={15} />
@@ -149,6 +218,7 @@ export function RegisterPage() {
             variant="primary"
             style={{ width: '100%', marginTop: '0.5rem' }}
             leftIcon={<UserPlus size={16} />}
+            isLoading={isLoading}
           >
             Create BalanceVault Account
           </Button>
@@ -173,4 +243,3 @@ export function RegisterPage() {
     </div>
   );
 }
-

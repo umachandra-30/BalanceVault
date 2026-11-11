@@ -148,6 +148,11 @@ export class OnboardingService {
       throw new NotFoundError('Onboarding application not found.');
     }
 
+    // Security Rule: Users (even admins) cannot approve or review their own onboarding
+    if (onboarding.userId === adminId) {
+      throw new ForbiddenError('Security violation: Administrators cannot review or approve their own onboarding application.');
+    }
+
     const isApproval = input.decision === 'APPROVED';
 
     const result = await prisma.$transaction(async (tx) => {

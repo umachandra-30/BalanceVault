@@ -1,6 +1,7 @@
-import { Link, useLocation } from 'react-router-dom';
-import { ShieldCheck, Activity, User, KeyRound, LayoutDashboard } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShieldCheck, Activity, User, KeyRound, LayoutDashboard, LogOut, FileCheck, ShieldAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext.tsx';
 
 interface BackendHealth {
   status: string;
@@ -8,6 +9,9 @@ interface BackendHealth {
 
 export function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
   const [health, setHealth] = useState<BackendHealth | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,6 +26,11 @@ export function Navbar() {
   }, []);
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleSignOut = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   return (
     <header
@@ -86,50 +95,121 @@ export function Navbar() {
           Dashboard
         </Link>
 
-        <Link
-          to="/login"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.45rem 0.9rem',
-            borderRadius: 6,
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: isActive('/login') ? 'var(--text-primary)' : 'var(--text-secondary)',
-            backgroundColor: isActive('/login') ? 'var(--border-subtle)' : 'transparent',
-            textDecoration: 'none',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <KeyRound size={16} />
-          Sign In
-        </Link>
+        {user && user.role === 'ADMIN' && (
+          <Link
+            to="/admin/onboardings"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.45rem 0.9rem',
+              borderRadius: 6,
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              color: isActive('/admin/onboardings') ? 'var(--accent-primary)' : 'var(--text-primary)',
+              backgroundColor: isActive('/admin/onboardings') ? 'var(--accent-glow)' : 'transparent',
+              textDecoration: 'none',
+            }}
+          >
+            <ShieldAlert size={16} color="var(--accent-primary)" />
+            KYC Queue
+          </Link>
+        )}
 
-        <Link
-          to="/register"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.45rem 0.9rem',
-            borderRadius: 6,
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            color: '#ffffff',
-            backgroundColor: 'var(--accent-primary)',
-            textDecoration: 'none',
-            boxShadow: '0 2px 8px var(--accent-glow)',
-          }}
-        >
-          <User size={16} />
-          Register
-        </Link>
+        {user && user.role === 'ACCOUNT_HOLDER' && (
+          <Link
+            to="/onboarding"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.45rem 0.9rem',
+              borderRadius: 6,
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: isActive('/onboarding') ? 'var(--text-primary)' : 'var(--text-secondary)',
+              backgroundColor: isActive('/onboarding') ? 'var(--border-subtle)' : 'transparent',
+              textDecoration: 'none',
+            }}
+          >
+            <FileCheck size={16} />
+            Onboarding
+          </Link>
+        )}
 
-        {/* Backend Connectivity Status Pill */}
+        {!user ? (
+          <>
+            <Link
+              to="/login"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.45rem 0.9rem',
+                borderRadius: 6,
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: isActive('/login') ? 'var(--text-primary)' : 'var(--text-secondary)',
+                backgroundColor: isActive('/login') ? 'var(--border-subtle)' : 'transparent',
+                textDecoration: 'none',
+              }}
+            >
+              <KeyRound size={16} />
+              Sign In
+            </Link>
+
+            <Link
+              to="/register"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.45rem 0.9rem',
+                borderRadius: 6,
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: '#ffffff',
+                backgroundColor: 'var(--accent-primary)',
+                textDecoration: 'none',
+                boxShadow: '0 2px 8px var(--accent-glow)',
+              }}
+            >
+              <User size={16} />
+              Register
+            </Link>
+          </>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '0.5rem' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              {user.fullName} <strong style={{ color: 'var(--accent-primary)' }}>({user.role})</strong>
+            </span>
+            <button
+              onClick={handleSignOut}
+              title="Sign Out"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                padding: '0.4rem 0.75rem',
+                borderRadius: 6,
+                fontSize: '0.8rem',
+                fontWeight: 500,
+                color: 'var(--danger)',
+                backgroundColor: 'var(--danger-bg)',
+                border: '1px solid var(--danger)',
+                cursor: 'pointer',
+              }}
+            >
+              <LogOut size={14} />
+              Sign Out
+            </button>
+          </div>
+        )}
+
+        {/* Backend Status Pill */}
         <div
           style={{
-            marginLeft: '1rem',
+            marginLeft: '0.75rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem',
@@ -150,4 +230,3 @@ export function Navbar() {
     </header>
   );
 }
-
