@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { Role } from '@prisma/client';
 import { accountController } from '../controllers/account.controller.js';
-import { authenticate, requireRole } from '../middleware/auth.js';
+import { transactionController } from '../controllers/transaction.controller.js';
+import { authenticate, requireAccountOwnership, requireRole } from '../middleware/auth.js';
 
 export const accountRouter = Router();
 
@@ -10,6 +11,15 @@ accountRouter.post('/', authenticate, accountController.createAccount);
 accountRouter.get('/', authenticate, accountController.listAccounts);
 accountRouter.get('/:id', authenticate, accountController.getAccountDetails);
 accountRouter.get('/:id/balance', authenticate, accountController.getBalance);
+accountRouter.get(
+  '/:id/transactions',
+  authenticate,
+  requireAccountOwnership('id'),
+  (req, res, next) => {
+    req.query.accountId = req.params.id;
+    transactionController.list(req, res, next);
+  }
+);
 
 export const adminAccountRouter = Router();
 
