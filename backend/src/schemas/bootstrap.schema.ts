@@ -23,3 +23,4 @@ export const bootstrapAdminSchema = z.object({
 });
 
 export type BootstrapAdminInput = z.infer<typeof bootstrapAdminSchema>;
+
