@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShieldCheck, Activity, User, KeyRound, LayoutDashboard, LogOut, FileCheck, ShieldAlert, CreditCard } from 'lucide-react';
+import { ShieldCheck, Activity, User, KeyRound, LayoutDashboard, LogOut, FileCheck, ShieldAlert, CreditCard, History } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 
@@ -114,6 +114,50 @@ export function Navbar() {
           >
             <CreditCard size={16} />
             Accounts
+          </Link>
+        )}
+
+        {user && (
+          <Link
+            to="/transactions"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.45rem 0.9rem',
+              borderRadius: 6,
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: isActive('/transactions') ? 'var(--text-primary)' : 'var(--text-secondary)',
+              backgroundColor: isActive('/transactions') ? 'var(--border-subtle)' : 'transparent',
+              textDecoration: 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <History size={16} />
+            Transactions
+          </Link>
+        )}
+
+        {user && (user.role === 'ADMIN' || user.role === 'AUDITOR') && (
+          <Link
+            to="/admin/audit-logs"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.45rem 0.9rem',
+              borderRadius: 6,
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              color: isActive('/admin/audit-logs') ? 'var(--accent-primary)' : 'var(--text-primary)',
+              backgroundColor: isActive('/admin/audit-logs') ? 'var(--accent-glow)' : 'transparent',
+              textDecoration: 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <ShieldCheck size={16} color="var(--accent-primary)" />
+            Audit Trail
           </Link>
         )}
 

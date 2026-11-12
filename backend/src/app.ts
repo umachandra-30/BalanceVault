@@ -3,6 +3,7 @@ import cors from 'cors';
 import express, { Express } from 'express';
 import helmet from 'helmet';
 import { env } from './config/env.js';
+import { correlationIdMiddleware } from './middleware/correlationId.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -18,28 +19,50 @@ export function createApp(): Express {
   }));
 
   // 2. Cross-Origin Resource Sharing
-  app.use(cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
-      if (!origin) return callback(null, true);
-      
-      const allowedOrigins = [env.CORS_ORIGIN, 'http://localhost:5173', 'http://127.0.0.1:5173'];
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error(`Origin ${origin} not allowed by CORS`));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Idempotency-Key'],
-  }));
+  app.use((req, res, next) => {
+    const requestHost = req.get('host');
+    const allowedOrigins = [env.CORS_ORIGIN, 'http://localhost:5173', 'http://127.0.0.1:5173'];
+    const corsMiddleware = cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+        if (!origin) return callback(null, true);
+
+        let isSameHost = false;
+        try {
+          const parsedOrigin = new URL(origin);
+          isSameHost = ['http:', 'https:'].includes(parsedOrigin.protocol)
+            && parsedOrigin.host === requestHost;
+        } catch {
+          return callback(new Error(`Origin ${origin} not allowed by CORS`));
+        }
+
+        if (allowedOrigins.includes(origin) || isSameHost) {
+          return callback(null, true);
+        }
+        return callback(new Error(`Origin ${origin} not allowed by CORS`));
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Idempotency-Key',
+        'X-Correlation-ID',
+        'X-Request-ID',
+      ],
+    });
+
+    corsMiddleware(req, res, next);
+  });
 
   // 3. Body Parsing with safe size limits (prevents payload-bloat DoS)
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: true, limit: '100kb' }));
   app.use(cookieParser());
 
-  // 4. Request Logging (with automatic redaction)
+  // 4. Request Correlation ID & Logging (with automatic redaction)
+  app.use(correlationIdMiddleware);
   app.use(requestLogger);
 
   // 5. Mount API routes under /api/v1
@@ -54,3 +77,6 @@ export function createApp(): Express {
   return app;
 }
 
+const app = createApp();
+
+export default app;

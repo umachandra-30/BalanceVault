@@ -3,6 +3,7 @@ import { Role, UserStatus } from '@prisma/client';
 import { prisma } from '../config/prisma.js';
 import { verifyAccessToken } from '../utils/jwt.js';
 import { ForbiddenError, NotFoundError, UnauthorizedError } from '../utils/response.js';
+import { recordAuditLog } from '../utils/audit.js';
 
 // Extend Express Request interface to include authenticated user context
 declare global {
@@ -99,6 +100,23 @@ export function requireRole(...allowedRoles: Role[]) {
     }
 
     if (!allowedRoles.includes(req.user.role)) {
+      recordAuditLog({
+        action: 'AUTHORIZATION_FAILURE',
+        actorId: req.user.id,
+        actorRole: req.user.role,
+        targetResource: req.originalUrl,
+        outcome: 'DENIED',
+        correlationId: req.correlationId,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        metadata: {
+          path: req.originalUrl,
+          method: req.method,
+          requiredRoles: allowedRoles,
+          reason: 'INSUFFICIENT_ROLE_PERMISSIONS',
+        },
+      });
+
       return next(
         new ForbiddenError(
           `Forbidden: Role '${req.user.role}' is not authorized to access this resource. Required role: ${allowedRoles.join(' or ')}.`
@@ -158,6 +176,22 @@ export function requireAccountOwnership(paramName = 'accountId') {
       // 2. AUDITOR: Strictly read-only access
       if (req.user.role === Role.AUDITOR) {
         if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
+          await recordAuditLog({
+            action: 'AUTHORIZATION_FAILURE',
+            actorId: req.user.id,
+            actorRole: req.user.role,
+            targetResource: 'ACCOUNT',
+            targetId: account.id,
+            outcome: 'DENIED',
+            correlationId: req.correlationId,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'],
+            metadata: {
+              path: req.originalUrl,
+              method: req.method,
+              reason: 'AUDITOR_MUTATION_RESTRICTED',
+            },
+          });
           throw new ForbiddenError('Auditor role is strictly read-only and cannot perform mutations.');
         }
         req.targetAccount = account;
@@ -166,6 +200,22 @@ export function requireAccountOwnership(paramName = 'accountId') {
 
       // 3. ACCOUNT_HOLDER: Must be verified owner
       if (account.userId !== req.user.id) {
+        await recordAuditLog({
+          action: 'AUTHORIZATION_FAILURE',
+          actorId: req.user.id,
+          actorRole: req.user.role,
+          targetResource: 'ACCOUNT',
+          targetId: account.id,
+          outcome: 'DENIED',
+          correlationId: req.correlationId,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+          metadata: {
+            path: req.originalUrl,
+            method: req.method,
+            reason: 'ACCOUNT_OWNERSHIP_MISMATCH',
+          },
+        });
         // Prevent account enumeration & unauthorized access
         throw new ForbiddenError('Access denied: You do not have permission to access this account.');
       }

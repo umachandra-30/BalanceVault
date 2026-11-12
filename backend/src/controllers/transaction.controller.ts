@@ -115,16 +115,30 @@ export class TransactionController {
   list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const accountId = req.query.accountId as string | undefined;
+      const type = req.query.type as any;
+      const search = req.query.search as string | undefined;
+      const startDate = req.query.startDate as string | undefined;
+      const endDate = req.query.endDate as string | undefined;
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
 
-      const data = await transactionService.listTransactions(
+      const { transactions, meta } = await transactionService.listTransactions(
         {
           userId: req.user!.id,
           userRole: req.user!.role,
         },
-        accountId
+        {
+          accountId,
+          type,
+          search,
+          startDate,
+          endDate,
+          page,
+          limit,
+        }
       );
 
-      sendSuccess(res, data, 'Transactions retrieved successfully');
+      sendSuccess(res, transactions, 'Transactions retrieved successfully', 200, meta);
     } catch (error) {
       next(error);
     }

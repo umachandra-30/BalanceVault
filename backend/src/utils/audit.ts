@@ -8,6 +8,8 @@ export interface CreateAuditLogParams {
   actorRole?: string | null;
   targetResource: string;
   targetId?: string | null;
+  outcome?: 'SUCCESS' | 'FAILURE' | 'DENIED' | string;
+  correlationId?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;
   metadata?: Prisma.InputJsonValue;
@@ -27,6 +29,8 @@ export async function recordAuditLog(params: CreateAuditLogParams): Promise<void
         actorRole: params.actorRole || null,
         targetResource: params.targetResource,
         targetId: params.targetId || null,
+        outcome: params.outcome || 'SUCCESS',
+        correlationId: params.correlationId || null,
         ipAddress: params.ipAddress || null,
         userAgent: params.userAgent || null,
         metadata: params.metadata || {},

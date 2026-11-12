@@ -217,6 +217,8 @@ model AuditLog {
   actorRole      String?
   targetResource String   // e.g., "ACCOUNT", "USER", "TRANSACTION"
   targetId       String?
+  outcome        String   @default("SUCCESS") // e.g., "SUCCESS", "FAILURE", "DENIED"
+  correlationId  String?
   ipAddress      String?
   userAgent      String?
   metadata       Json?    // Sanitized contextual payload
@@ -228,6 +230,8 @@ model AuditLog {
   @@index([action])
   @@index([actorId])
   @@index([targetResource])
+  @@index([outcome])
+  @@index([correlationId])
   @@index([createdAt])
   @@map("audit_logs")
 }

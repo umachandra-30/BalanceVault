@@ -61,6 +61,17 @@ cd backend
 npm test
 ```
 
+## ☁️ Deploying to Vercel
+
+The root `vercel.json` configures the `backend` Express service and `frontend` Vite
+service as one Vercel project. Requests under `/api/` route to the backend; all
+other paths route to the frontend. The frontend calls the API through same-origin
+`/api/v1` URLs, so no service binding is needed.
+
+Configure the backend's production environment variables in Vercel, including
+`DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, and `ADMIN_BOOTSTRAP_SECRET`.
+Use hosted database and Redis URLs rather than local development addresses.
+
 ---
 
 ## 🗺️ Implementation Roadmap
@@ -73,4 +84,3 @@ npm test
 - [ ] **Phase 6: Auditor Module & Audit Logging System (Read-only ledger exploration, Immutable audit trail, Filtering & Export)**
 - [ ] **Phase 7: Frontend Application & UI Design System (React + Vite, Role-based Dashboard, Responsive financial views, Transfer/Deposit/Withdrawal flows)**
 - [ ] **Phase 8: End-to-End Integration, Security Hardening, Verification & Documentation**
-

@@ -617,22 +617,37 @@ export class TransactionService {
   /**
    * List transactions scoped to user role:
    * - ACCOUNT_HOLDER: only transactions touching accounts they own
-   * - ADMIN / AUDITOR: all transactions
+   * - ADMIN / AUDITOR: all platform transactions
    */
-  async listTransactions(ctx: TransactionServiceContext, accountId?: string) {
+  async listTransactions(
+    ctx: TransactionServiceContext,
+    options?: {
+      accountId?: string;
+      type?: TransactionType;
+      search?: string;
+      startDate?: string;
+      endDate?: string;
+      page?: number;
+      limit?: number;
+    }
+  ) {
+    const page = options?.page || 1;
+    const limit = options?.limit || 50;
+    const skip = (page - 1) * limit;
+
     const whereClause: Prisma.LedgerTransactionWhereInput = {};
 
-    if (accountId) {
+    if (options?.accountId) {
       // Check ownership if ACCOUNT_HOLDER
       if (ctx.userRole === Role.ACCOUNT_HOLDER) {
-        const acc = await prisma.account.findUnique({ where: { id: accountId } });
+        const acc = await prisma.account.findUnique({ where: { id: options.accountId } });
         if (!acc || acc.userId !== ctx.userId) {
           throw new ForbiddenError('You can only view transactions for your own accounts.');
         }
       }
       whereClause.entries = {
         some: {
-          accountId,
+          accountId: options.accountId,
         },
       };
     } else if (ctx.userRole === Role.ACCOUNT_HOLDER) {
@@ -646,34 +661,73 @@ export class TransactionService {
       };
     }
 
-    const transactions = await prisma.ledgerTransaction.findMany({
-      where: whereClause,
-      include: {
-        entries: {
-          include: {
-            account: {
-              select: {
-                id: true,
-                accountNumber: true,
-                type: true,
-                status: true,
-                userId: true,
-                user: {
-                  select: { fullName: true, email: true },
-                },
+    if (options?.type) {
+      whereClause.type = options.type;
+    }
+
+    if (options?.startDate || options?.endDate) {
+      whereClause.createdAt = {};
+      if (options.startDate) {
+        whereClause.createdAt.gte = new Date(options.startDate);
+      }
+      if (options.endDate) {
+        const end = new Date(options.endDate);
+        if (options.endDate.length === 10) {
+          end.setHours(23, 59, 59, 999);
+        }
+        whereClause.createdAt.lte = end;
+      }
+    }
+
+    if (options?.search && options.search.trim()) {
+      const term = options.search.trim();
+      whereClause.OR = [
+        { description: { contains: term, mode: 'insensitive' } },
+        { idempotencyKey: { contains: term, mode: 'insensitive' } },
+        {
+          entries: {
+            some: {
+              account: {
+                accountNumber: { contains: term, mode: 'insensitive' },
               },
             },
           },
         },
-        initiatedBy: {
-          select: { id: true, fullName: true, email: true, role: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
+      ];
+    }
 
-    return transactions.map((tx) => ({
+    const [totalCount, transactions] = await Promise.all([
+      prisma.ledgerTransaction.count({ where: whereClause }),
+      prisma.ledgerTransaction.findMany({
+        where: whereClause,
+        include: {
+          entries: {
+            include: {
+              account: {
+                select: {
+                  id: true,
+                  accountNumber: true,
+                  type: true,
+                  status: true,
+                  userId: true,
+                  user: {
+                    select: { fullName: true, email: true },
+                  },
+                },
+              },
+            },
+          },
+          initiatedBy: {
+            select: { id: true, fullName: true, email: true, role: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    const formattedTransactions = transactions.map((tx) => ({
       id: tx.id,
       idempotencyKey: tx.idempotencyKey,
       type: tx.type,
@@ -692,6 +746,16 @@ export class TransactionService {
         balanceAfter: e.balanceAfter.toString(),
       })),
     }));
+
+    return {
+      transactions: formattedTransactions,
+      meta: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit) || 1,
+      },
+    };
   }
 
   /**

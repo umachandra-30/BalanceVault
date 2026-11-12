@@ -8,6 +8,8 @@ import { RegisterPage } from './pages/RegisterPage.tsx';
 import { OnboardingPage } from './pages/OnboardingPage.tsx';
 import { AdminOnboardingsPage } from './pages/AdminOnboardingsPage.tsx';
 import { AccountsPage } from './pages/AccountsPage.tsx';
+import { TransactionsPage } from './pages/TransactionsPage.tsx';
+import { AuditLogsPage } from './pages/AuditLogsPage.tsx';
 import { NotFoundPage } from './pages/NotFoundPage.tsx';
 
 export function App() {
@@ -21,6 +23,9 @@ export function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/accounts" element={<AccountsPage />} />
+              <Route path="/transactions" element={<TransactionsPage />} />
+              <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
+              <Route path="/audit-logs" element={<AuditLogsPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/onboarding" element={<OnboardingPage />} />

@@ -9,8 +9,18 @@ export const accountRouter = Router();
 // Customer and Shared Account operations
 accountRouter.post('/', authenticate, accountController.createAccount);
 accountRouter.get('/', authenticate, accountController.listAccounts);
-accountRouter.get('/:id', authenticate, accountController.getAccountDetails);
-accountRouter.get('/:id/balance', authenticate, accountController.getBalance);
+accountRouter.get(
+  '/:id',
+  authenticate,
+  requireAccountOwnership('id'),
+  accountController.getAccountDetails
+);
+accountRouter.get(
+  '/:id/balance',
+  authenticate,
+  requireAccountOwnership('id'),
+  accountController.getBalance
+);
 accountRouter.get(
   '/:id/transactions',
   authenticate,

@@ -7,6 +7,17 @@ describe('BalanceVault Foundation Tests', () => {
   const app = createApp();
 
   describe('Health & Readiness Endpoints', () => {
+    it('allows same-origin requests routed through the deployment host', async () => {
+      const res = await request(app)
+        .get('/api/v1/health')
+        .set('Host', 'balancevault.example')
+        .set('Origin', 'https://balancevault.example');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['access-control-allow-origin']).toBe('https://balancevault.example');
+      expect(res.headers['access-control-allow-credentials']).toBe('true');
+    });
+
     it('GET /api/v1/health returns 200 with UP status', async () => {
       const res = await request(app).get('/api/v1/health');
 
@@ -74,4 +85,3 @@ describe('BalanceVault Foundation Tests', () => {
     });
   });
 });
-
